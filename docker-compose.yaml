@@ -1,0 +1,89 @@
+version: '3.9'
+
+# Network for Laravel 8
+networks:
+  web_network:
+    name: laravel8
+    driver: bridge
+
+services:
+
+  # PHP App Service 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: laravel8-app
+    container_name: laravel8_app
+    restart: always
+    volumes:
+      - ./src:/var/www
+    networks:
+      - web_network
+
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: laravel8_mysql
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_DATABASE=laravel8db
+      - MYSQL_USER=admin
+      - MYSQL_PASSWORD=1234
+    ports:
+      - "3308:3306"
+    restart: always
+    networks:
+      - web_network
+
+  # Nginx Web Server Service
+  nginx:
+    image: nginx:1.19.8-alpine
+    container_name: laravel8_nginx
+    volumes:
+      - ./src:/var/www
+      - ./nginx/conf:/etc/nginx/conf.d
+    ports:
+      - "8100:80"
+    restart: always
+    networks:
+      - web_network
+
+  # Redis (caching)
+  redis:
+    image: redis:6.2.1-buster
+    container_name: laravel8_redis
+    volumes: 
+      - ./redis/data:/data
+    restart: always
+    networks:
+      - web_network      
+
+  # MailHog (local mail testing)
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: laravel8_mailhog
+    ports:
+      - 8025:8025
+    restart: always
+    networks:
+      - web_network
+
+  # phpMyAdmin (MySQL managment)
+  phpmyadmin:
+    image: phpmyadmin:5.1.0-apache
+    depends_on:
+      - db
+    container_name: laravel8_phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: admin
+      PMA_PASSWORD: 1234
+    ports:
+      - 8200:80
+    restart: always
+    networks:
+      - web_network
